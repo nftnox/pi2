@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Index</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet"> <!-- Dodavanje Roboto fonta -->
+    
+</head>
+<body>
+
+    <header>
+        <div id="user-name">Pozdrav, <span id="ime"></span></div>
+        <div id="current-price">Trenutna cijena: <span id="amount">0.00</span></div>
+    
+        <!-- Toggle dugme za mobilne uređaje -->
+        <button id="toggle-menu-button" class="toggle-button">☰</button>
+    
+        <nav id="desktop-menu"> <!-- Desktop meni -->
+            <a href="#"><span class="material-icons">home</span> Home</a>
+            <a href="#"><span class="material-icons">group</span> Team</a>
+            <a href="#"><span class="material-icons">chat</span> Chat</a>
+            <a href="#"><span class="material-icons">person</span> Profile</a>
+        </nav>
+    
+        <!-- Mobilni meni -->
+        <nav id="toggle-menu">
+            <a href="#"><span class="material-icons">home</span> Home</a>
+            <a href="#"><span class="material-icons">group</span> Team</a>
+            <a href="#"><span class="material-icons">chat</span> Chat</a>
+            <a href="#"><span class="material-icons">person</span> Profile</a>
+        </nav>
+    </header>
+    
+
+    <div id="video-popup" class="video-popup" onclick="closePopup(event)">
+        <div class="video-content" onclick="event.stopPropagation();">
+            <span class="close" onclick="closePopup(event)">&times;</span>
+            <video autoplay muted>
+                <source src="images/reklama.mp4" type="video/mp4">
+                Vaš preglednik ne podržava video.
+            </video>
+        </div>
+    </div>
+    
+    <style>
+        .video-popup {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Osigurava da je popup iznad ostalog sadržaja */
+        }
+        .video-content {
+            position: relative;
+            width: 40%;
+            max-width: 800px; /* Maksimalna širina popupa */
+            height: 30%; /* Postavite visinu popupa na 80% */
+        }
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 30px;
+            color: white;
+            cursor: pointer;
+        }
+        video {
+            width: 100%;
+            height: 150%; /* Povećanje visine videa na 150% */
+            object-fit: cover; /* Pomaže da se video prilagodi okviru bez gubitka proporcija */
+        }
+    
+        /* Medijski upit za mobilne uređaje */
+        @media (max-width: 768px) {
+            .video-content {
+                height: 20%; /* Postavite visinu popupa na 80% za mobilne uređaje */
+                width: 80%;
+            }
+            
+        }
+    </style>
+    
+    
+    
+    <script>
+        function closePopup(event) {
+            event.stopPropagation(); // Spriječiti da se događaj propagira do pozadine
+            console.log("closePopup() funkcija je pozvana."); // Provjera poziva funkcije
+            const videoPopup = document.getElementById('video-popup');
+            
+            if (videoPopup) {
+                videoPopup.style.display = 'none'; // Sakrij popup
+    
+                const video = videoPopup.querySelector('video');
+                if (video) {
+                    video.pause(); // Pauziraj video kada se popup zatvori
+                    video.currentTime = 0; // Resetuj video na početak
+                    console.log("Video je pauziran i resetovan."); // Provjera pauziranja i resetovanja videa
+                }
+            }
+        }
+    
+        window.onload = () => {
+            // Prikazuje popup kada se stranica učita
+            const videoPopup = document.getElementById('video-popup');
+            videoPopup.style.display = 'flex'; // Prikazivanje popupa
+    
+            // Postavite interval za učitavanje podataka svakih 5 sekundi
+            setInterval(() => {
+                loadUserData(); // Učitava nove podatke
+            }, 5000);
+        };
+    </script>
+    
+
+<script>
+    const toggleMenuButton = document.getElementById('toggle-menu-button');
+    const toggleMenu = document.getElementById('toggle-menu');
+
+    toggleMenuButton.addEventListener('click', () => {
+        // Togglovanje prikaza menija
+        if (toggleMenu.style.display === 'flex') {
+            toggleMenu.style.display = 'none'; // Sakrij meni
+        } else {
+            toggleMenu.style.display = 'flex'; // Prikaži meni
+        }
+    });
+</script>
+
+
+<div class="container">
+    <div class="icon-section">
+        <div class="icon" id="dolar-icon">
+            <span class="material-icons">attach_money</span>
+            <span class="amount">0.00/h</span>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBKfTE0qZdxVLq0lvmli367_yyqpGK-fPA",
+        authDomain: "piii-7844e.firebaseapp.com",
+        projectId: "piii-7844e",
+        storageBucket: "piii-7844e.appspot.com",
+        messagingSenderId: "315770496799",
+        appId: "1:315770496799:web:0197d4baf2c8731d88722a",
+        measurementId: "G-JH9SDWTS9V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let userId = ""; // Varijabla za korisnički ID
+    let currentPrice = 0.00; // Varijabla za trenutnu cijenu
+    let lastClickTime = null; // Varijabla za praćenje vremena poslednjeg klika
+
+    // Funkcija za dobijanje parametara iz URL-a
+    function getQueryParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            ime: params.get('ime'),
+            prezime: params.get('prezime'),
+            username: params.get('username')
+        };
+    }
+
+    const { username: userParam } = getQueryParams(); // Dobijanje username iz URL-a
+
+    async function loadUserId() {
+        const userCollection = collection(db, 'network');
+        const q = query(userCollection, where("username", "==", userParam));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+            querySnapshot.forEach(doc => {
+                userId = doc.id; // Dobijanje ID-a korisnika
+                const userData = doc.data();
+                document.getElementById('ime').innerText = userData.ime; // Prikazivanje imena korisnika
+                loadUserData(); // Pozivamo funkciju za učitavanje podataka nakon što imamo ID
+            });
+        } else {
+            console.error("Korisnik ne postoji u Firestore-u.");
+        }
+    }
+
+    async function loadUserData() {
+        const docRef = doc(db, 'network', userId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            currentPrice = docSnap.data().currentPrice || 0.00;
+            lastClickTime = docSnap.data().lastClickTime ? docSnap.data().lastClickTime.toDate() : null; // Učitavamo vreme poslednjeg klika
+
+            // Prikazivanje cijene
+            document.getElementById('current-price').querySelector('#amount').innerText = currentPrice.toFixed(2);
+            document.querySelector('.amount').innerText = (currentPrice > 0) ? "0.01/h" : "0.00/h"; // Početno povećanje
+
+            // Proveri prošlo vreme i nastavi sa povećanjem ako je manje od 24h
+            const now = new Date();
+            const twentyFourHours = 24 * 60 * 60 * 1000; // 24h u milisekundama
+
+            if (lastClickTime) {
+                const elapsed = now - lastClickTime; // Prolazno vreme
+                const increments = Math.floor(elapsed / 5000); // Računanje broja povećanja svake 5 sekundi
+                currentPrice += increments * 0.01; // Ažuriranje trenutne cijene
+                document.getElementById('amount').innerText = currentPrice.toFixed(2); // Ažuriranje prikazane cijene
+                lastClickTime.setSeconds(lastClickTime.getSeconds() + increments * 5); // Ažuriranje vremena poslednjeg klika
+                await updateFirestore(currentPrice, lastClickTime); // Ažuriranje Firestore sa novim vremenom i cijenom
+            }
+
+            // Klik na dolar ikonicu za dodavanje 0.01 na trenutnu cijenu
+            document.getElementById('dolar-icon').addEventListener('click', async () => {
+                const now = new Date();
+
+                // Postavljanje vremena poslednjeg klika i povećanje
+                if (!lastClickTime || (now - lastClickTime) >= twentyFourHours) {
+                    lastClickTime = now; // Postavi vreme poslednjeg klika
+                    currentPrice += 0.01; // Povećanje za 0.01
+                    document.querySelector('.amount').innerText = "0.01/h"; // Postavi hourlyIncrease na 0.01/h
+                    await updateFirestore(currentPrice, lastClickTime); // Ažurirajte Firestore
+                } else {
+                    alert("Možete kliknuti samo jednom svakih 24 sata.");
+                }
+            });
+        } else {
+            console.error("Korisnik ne postoji u Firestore-u.");
+        }
+    }
+
+    async function updateFirestore(currentPrice, lastClickTime) {
+        const docRef = doc(db, 'network', userId);
+        try {
+            await updateDoc(docRef, {
+                currentPrice: currentPrice,
+                lastClickTime: lastClickTime ? lastClickTime : null // Ažuriraj vreme poslednjeg klika
+            });
+            console.log("Podaci uspješno ažurirani.");
+        } catch (error) {
+            console.error("Greška prilikom ažuriranja podataka: ", error);
+        }
+    }
+
+    // Kada se stranica učita, pozovite loadUserId
+    window.onload = () => {
+        loadUserId();
+
+        // Postavite interval za učitavanje podataka svakih 5 sekundi
+        setInterval(() => {
+            loadUserData(); // Učitava nove podatke
+        }, 5000);
+    };
+
+</script>
+
+</body>
+</html>
+
+
+
+
+<style>
+    body {
+        font-family: 'Roboto', sans-serif; /* Promjena fonta */
+        margin: 0;
+        padding: 0;
+    }
+   
+    nav {
+        display: flex;
+        gap: 20px;
+    }
+    nav a {
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+    }
+    nav .material-icons {
+        margin-right: 5px; /* Razmak između ikone i teksta */
+    }
+    .container {
+        display: flex;
+        background-color: #f0f0f0; /* Sivi pozadinski boja */
+        padding: 20px;
+    }
+    .icon-section {
+        flex: 2;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 20px;
+    }
+    .icon {
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+        cursor: pointer;
+        position: relative; /* Omogućuje pozicioniranje zaštitnog kruga */
+    }
+   
+    .amount {
+        font-size: 24px;
+        margin-left: 2px;
+    }
+
+
+/* Stil za ikonice */
+.material-icons {
+    vertical-align: middle; /* Poravnanje ikone sa tekstom */
+    margin-right: 8px; /* Razmak između ikone i teksta */
+}
+
+
+</style>
+
+
+
+<style>
+    header {
+  background-color: #6a5acd; /* Ljubičasta boja */
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 20px;
+  position: relative; /* Omogućuje apsolutno pozicioniranje menija */
+}
+
+/* Toggle dugme */
+.toggle-button {
+  display: none; /* Skriveno po defaultu */
+  font-size: 30px;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+/* Meni za mobilne uređaje - skriven po defaultu */
+#toggle-menu {
+  display: none; /* Skriveno po defaultu */
+  flex-direction: column; /* Vertikalno poravnanje menija */
+  background-color: #6a5acd;
+  position: absolute;
+  right: 0px;
+  top: 60px;
+  width: 50%;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+#toggle-menu a {
+  color: white;
+  text-decoration: none;
+  padding: 10px 20px;
+  display: block;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Stil za desktop meni */
+#desktop-menu {
+  display: flex;
+}
+
+#desktop-menu a {
+  margin-left: 20px;
+  text-decoration: none;
+  color: white;
+}
+
+/* Media query za mobilne uređaje */
+@media (max-width: 768px) {
+  /* Prikaži toggle dugme na mobilnim uređajima */
+  .toggle-button {
+      display: block;
+  }
+
+  /* Sakrij desktop meni na mobilnim uređajima */
+  #desktop-menu {
+      display: none;
+  }
+}
+
+
+  </style>
